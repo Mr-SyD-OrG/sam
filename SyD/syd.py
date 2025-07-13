@@ -3,10 +3,25 @@ import time
 import asyncio
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-
+from config import Config
 active_users = set()
 queued_users = {}
 RESOLUTIONS = ["360", "480", "720", "1080"]
+
+async def get_duration_from_telegram(client, file_id):
+    tg_file = await client.get_file(file_id)
+    file_url = f"https://api.telegram.org/file/bot{Config.MRSYD}/{tg_file.file_path}"
+
+    proc = await asyncio.create_subprocess_exec(
+        "ffprobe", "-v", "error",
+        "-show_entries", "format=duration",
+        "-of", "default=noprint_wrappers=1:nokey=1",
+        file_url,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE
+    )
+    stdout, _ = await proc.communicate()
+    return float(stdout.decode().strip())
 
 def humanbytes(size):
     for unit in ["B", "KB", "MB", "GB", "TB"]:
@@ -70,18 +85,32 @@ async def run_ffmpeg(cmd: list):
 
 @Client.on_message(filters.video | filters.document)
 async def media_handler(client, message):
+    media = message.video or message.document
+    if not media:
+        return await message.reply("❌ ɴᴏ ᴠᴀʟɪᴅ ᴍᴇᴅɪᴀ ꜰᴏᴜɴᴅ.")
+
+    wait_msg = await message.reply("🔍 ɢᴇᴛᴛɪɴɢ ᴍᴇᴅɪᴀ ɪɴꜰᴏ...")
+    duration = await get_duration_from_telegram(client, media.file_id)
+
     keyboard = []
     for res in RESOLUTIONS:
+        bitrate = BITRATE_MAP[res]
+        size_bytes = (bitrate * 1000 / 8) * duration
+        size_mb = size_bytes / (1024 * 1024)
+        size_text = f"{res}p (~{int(size_mb)}MB)"
+        sample_text = f"Sample {res}p"
         keyboard.append([
-            InlineKeyboardButton(f"{res}p", callback_data=f"res_{res}"),
-            InlineKeyboardButton(f"Sample {res}p", callback_data=f"sample_{res}")
+            InlineKeyboardButton(size_text, callback_data=f"res_{res}"),
+            InlineKeyboardButton(sample_text, callback_data=f"sample_{res}")
         ])
+
     keyboard.append([InlineKeyboardButton("Custom Size", callback_data="res_custom")])
 
-    await message.reply(
-        "Select resolution or sample size:",
+    await wait_msg.edit_text(
+        f"ᴇꜱᴛɪᴍᴀᴛᴇᴅ ᴅᴜʀᴀᴛɪᴏɴ: `{int(duration)}s`\n\nꜱᴇʟᴇᴄᴛ ʀᴇꜱᴏʟᴜᴛɪᴏɴ:",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
+
 
 
 @Client.on_callback_query(filters.regex("^queue_"))

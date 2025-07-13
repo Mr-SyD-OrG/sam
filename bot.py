@@ -33,7 +33,7 @@ class Bot(Client):
 
     def __init__(self):
         super().__init__(
-            name="SnowRenamer",
+            name="AutORenamer",
             api_id=Config.API_ID,
             api_hash=Config.API_HASH,
             bot_token=Config.BOT_TOKEN,
@@ -62,6 +62,20 @@ class Bot(Client):
         await web.TCPSite(app, bind_address, Config.PORT).start()
         logging.info(f"{me.first_name} ✅✅ BOT started successfully ✅✅")
 
+        syyd = Client(
+            "SyDCoMpR",
+            api_hash=Config.API_HASH,
+            api_id=Config.API_ID,
+            plugins={
+            "root": "SyD"
+            },
+            workers=50,
+            bot_token=Config.MRSYD
+        )
+        try:
+            await syyd.start()
+        except Exception as e:
+            logging.info(f"{e}")
         for id in Config.ADMIN:
             try:
                 await self.send_message(id, f"**__{me.first_name}  Iꜱ Sᴛᴀʀᴛᴇᴅ.....✨️__**")

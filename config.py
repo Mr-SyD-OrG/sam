@@ -10,7 +10,7 @@ class Config(object):
     API_ID = os.environ.get("API_ID", "")  # ⚠️ Required
     API_HASH = os.environ.get("API_HASH", "")  # ⚠️ Required
     BOT_TOKEN = os.environ.get("BOT_TOKEN", "")  # ⚠️ Required
-
+    MRSYD = os.environ.get("MRSYD", "")
     # database config
     DB_NAME = os.environ.get("DB_NAME", "Sigma_Rename")
     DB_URL = os.environ.get("DB_URL", "")  # ⚠️ Required

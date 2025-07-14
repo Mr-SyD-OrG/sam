@@ -88,10 +88,11 @@ async def media_handler(client, message):
     media = message.video or message.document
     if not media:
         return await message.reply("❌ ɴᴏ ᴠᴀʟɪᴅ ᴍᴇᴅɪᴀ ꜰᴏᴜɴᴅ.")
-
-    wait_msg = await message.reply("🔍 ɢᴇᴛᴛɪɴɢ ᴍᴇᴅɪᴀ ɪɴꜰᴏ...")
-    duration = await get_duration_from_telegram(client, media.file_id)
-
+    try:
+        wait_msg = await message.reply("🔍 ɢᴇᴛᴛɪɴɢ ᴍᴇᴅɪᴀ ɪɴꜰᴏ...")
+        duration = await get_duration_from_telegram(client, media.file_id)
+    except Exception as e:
+        await message.reply(f"{e}")
     keyboard = []
     for res in RESOLUTIONS:
         bitrate = BITRATE_MAP[res]

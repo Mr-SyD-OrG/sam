@@ -84,15 +84,19 @@ async def run_ffmpeg(cmd: list):
 
 
 @Client.on_message(filters.video | filters.document)
+@Client.on_message(filters.video | filters.document)
 async def media_handler(client, message):
     media = message.video or message.document
     if not media:
         return await message.reply("❌ ɴᴏ ᴠᴀʟɪᴅ ᴍᴇᴅɪᴀ ꜰᴏᴜɴᴅ.")
-    try:
-        wait_msg = await message.reply("🔍 ɢᴇᴛᴛɪɴɢ ᴍᴇᴅɪᴀ ɪɴꜰᴏ...")
-        duration = await get_duration_from_telegram(client, media.file_id)
-    except Exception as e:
-        await message.reply(f"{e}")
+
+    # Try to get duration directly from Telegram metadata
+    duration = getattr(media, "duration", None)
+    if duration is None:
+        return await message.reply("❌ Unable to get duration from metadata.")
+
+    wait_msg = await message.reply(f"✅ Got duration: {int(duration)}s.\nPreparing options...")
+
     keyboard = []
     for res in RESOLUTIONS:
         bitrate = BITRATE_MAP[res]

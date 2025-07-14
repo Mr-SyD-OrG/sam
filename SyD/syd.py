@@ -8,6 +8,17 @@ active_users = set()
 queued_users = {}
 RESOLUTIONS = ["360", "480", "720", "1080"]
 
+BITRATE_MAP = {
+    144:  150,    # 150 kbps for 144p
+    240:  300,    # 300 kbps for 240p
+    360:  500,    # 500 kbps for 360p
+    480:  1000,   # 1000 kbps for 480p
+    720:  2500,   # 2500 kbps for 720p
+    1080: 4500,   # 4500 kbps for 1080p
+    1440: 6000,   # 6000 kbps for 1440p
+    2160: 12000,  # 12000 kbps for 4K (2160p)
+}
+
 async def get_duration_from_telegram(client, file_id):
     tg_file = await client.get_file(file_id)
     file_url = f"https://api.telegram.org/file/bot{Config.MRSYD}/{tg_file.file_path}"

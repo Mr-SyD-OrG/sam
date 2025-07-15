@@ -73,7 +73,7 @@ async def progress_for_pyrogram(current, total, ud_type, message, start):
         except:
             pass
 
-async def get_duration(file_path: str) -> float:
+async def get_ration(file_path: str) -> float:
     proc = await asyncio.create_subprocess_exec(
         "ffprobe", "-v", "error",
         "-show_entries", "format=duration",
@@ -161,6 +161,55 @@ async def handle_conversion(client, query):
 
 
 
+import asyncio
+import os
+import time
+
+async def get_duration(file_path):
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            "ffprobe", "-v", "error",
+            "-show_entries", "format=duration",
+            "-of", "default=noprint_wrappers=1:nokey=1",
+            file_path,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
+        )
+        stdout, _ = await proc.communicate()
+        duration = float(stdout.decode().strip())
+        return duration
+    except Exception:
+        return None
+
+# Helper: show live ffmpeg progress
+async def convert_video_with_progress(msg, cmd, duration=None):
+    proc = await asyncio.create_subprocess_exec(
+        *cmd,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE
+    )
+
+    last_percent = -1
+    while True:
+        line = await proc.stderr.readline()
+        if not line:
+            break
+        decoded = line.decode("utf-8").strip()
+        if "time=" in decoded and duration:
+            # Parse time=00:00:14.56
+            time_str = decoded.split("time=")[-1].split(" ")[0]
+            h, m, s = time_str.split(":")
+            seconds = float(h)*3600 + float(m)*60 + float(s)
+            percent = int((seconds / duration) * 100)
+            if percent != last_percent:
+                await msg.edit(f"⚙ ᴄᴏɴᴠᴇʀᴛɪɴɢ ꜰɪʟᴇ... {percent}%")
+                last_percent = percent
+
+    await proc.wait()
+    if proc.returncode != 0:
+        raise Exception("ffmpeg conversion failed.")
+
+# Your process_file
 async def process_file(client, query, user_id, mode):
     active_users.add(user_id)
     msg = await query.message.edit("⏬ ᴅᴏᴡɴʟᴏᴀᴅɪɴɢ ꜰɪʟᴇ...")
@@ -180,34 +229,46 @@ async def process_file(client, query, user_id, mode):
         output = f"converted_{user_id}.mp4"
 
         if mode == "res_custom":
-            await msg.edit("ᴇɴᴛᴇʀ ᴛᴀʀɢᴇᴛ ꜱɪᴢᴇ ɪɴ ᴍʙ:")
+            await msg.edit("📝 ᴇɴᴛᴇʀ ᴛᴀʀɢᴇᴛ ꜱɪᴢᴇ ɪɴ ᴍʙ:")
             user_input = await client.listen(user_id, timeout=60)
             size = int(user_input.text.strip())
 
             duration = await get_duration(file_path)
             bitrate = (size * 8192) / duration
-            cmd = ["ffmpeg", "-i", file_path, "-b:v", f"{int(bitrate)}k", "-preset", "fast", output]
+            cmd = [
+                "ffmpeg", "-y", "-i", file_path,
+                "-b:v", f"{int(bitrate)}k", "-preset", "fast",
+                "-c:a", "aac", "-b:a", "128k",
+                "-movflags", "+faststart", "-fflags", "+genpts",
+                output
+            ]
         elif mode.startswith("sample_"):
             res = mode.split("_")[1]
             duration = await get_duration(file_path)
             start_pos = max(1, int(duration) // 2 - 15) if duration > 30 else 0
             cmd = [
-                "ffmpeg", "-ss", str(start_pos), "-t", "30",
+                "ffmpeg", "-y", "-ss", str(start_pos), "-t", "30",
                 "-i", file_path,
-                "-vf", f"scale=-2:{res}", "-c:v", "libx264",
-                "-preset", "fast", "-c:a", "aac", output
+                "-vf", f"scale=-2:{res}",
+                "-c:v", "libx264", "-preset", "fast",
+                "-c:a", "aac", "-b:a", "128k",
+                "-movflags", "+faststart", "-fflags", "+genpts",
+                output
             ]
         else:
             res = mode.split("_")[1]
             cmd = [
-                "ffmpeg", "-i", file_path,
+                "ffmpeg", "-y", "-i", file_path,
                 "-vf", f"scale=-2:{res}",
                 "-c:v", "libx264", "-preset", "fast",
-                "-c:a", "copy", output
+                "-c:a", "aac", "-b:a", "128k",
+                "-movflags", "+faststart", "-fflags", "+genpts",
+                output
             ]
 
         await msg.edit("⚙ ᴄᴏɴᴠᴇʀᴛɪɴɢ ꜰɪʟᴇ...")
-        await run_ffmpeg(cmd)
+        duration = await get_duration(file_path)
+        await convert_video_with_progress(msg, cmd, duration=duration)
 
         if not os.path.exists(output):
             await msg.edit("❌ ᴄᴏɴᴠᴇʀꜱɪᴏɴ ꜰᴀɪʟᴇᴅ.")
@@ -217,7 +278,7 @@ async def process_file(client, query, user_id, mode):
         up_start = time.time()
         await query.message.reply_video(
             output,
-            caption="✅ ᴄᴏɴᴠᴇʀꜱɪᴏɴ ᴄᴏᴍᴘʟᴇᴛᴇᴅ.",
+            caption=f"{res} ✅ ᴄᴏɴᴠᴇʀꜱɪᴏɴ ᴄᴏᴍᴘʟᴇᴛᴇᴅ.",
             progress=progress_for_pyrogram,
             progress_args=("⬆ ᴜᴘʟᴏᴀᴅɪɴɢ...", msg, up_start)
         )

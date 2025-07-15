@@ -94,38 +94,44 @@ async def run_ffmpeg(cmd: list):
     await proc.communicate()
 
 
-@Client.on_message(filters.video | filters.document)
+
 @Client.on_message(filters.video | filters.document)
 async def media_handler(client, message):
-    media = message.video or message.document
-    if not media:
-        return await message.reply("❌ ɴᴏ ᴠᴀʟɪᴅ ᴍᴇᴅɪᴀ ꜰᴏᴜɴᴅ.")
+    try:
+        media = message.video or message.document
+        if not media:
+            return await message.reply("❌ ɴᴏ ᴠᴀʟɪᴅ ᴍᴇᴅɪᴀ ꜰᴏᴜɴᴅ.")
 
-    # Try to get duration directly from Telegram metadata
-    duration = getattr(media, "duration", None)
-    if duration is None:
-        return await message.reply("❌ Unable to get duration from metadata.")
+        # Try to get duration directly from Telegram metadata
+        duration = getattr(media, "duration", None)
+        if duration is None:
+            return await message.reply("❌ Unable to get duration from metadata.")
 
-    wait_msg = await message.reply(f"✅ Got duration: {int(duration)}s.\nPreparing options...")
+        wait_msg = await message.reply(f"✅ Got duration: {int(duration)}s.\nPreparing options...")
 
-    keyboard = []
-    for res in RESOLUTIONS:
-        bitrate = BITRATE_MAP[res]
-        size_bytes = (bitrate * 1000 / 8) * duration
-        size_mb = size_bytes / (1024 * 1024)
-        size_text = f"{res}p (~{int(size_mb)}MB)"
-        sample_text = f"Sample {res}p"
-        keyboard.append([
-            InlineKeyboardButton(size_text, callback_data=f"res_{res}"),
-            InlineKeyboardButton(sample_text, callback_data=f"sample_{res}")
-        ])
+        keyboard = []
+        for res in RESOLUTIONS:
+            bitrate = BITRATE_MAP[res]
+            size_bytes = (bitrate * 1000 / 8) * duration
+            size_mb = size_bytes / (1024 * 1024)
+            size_text = f"{res}p (~{int(size_mb)}MB)"
+            sample_text = f"Sample {res}p"
+            keyboard.append([
+                InlineKeyboardButton(size_text, callback_data=f"res_{res}"),
+                InlineKeyboardButton(sample_text, callback_data=f"sample_{res}")
+            ])
 
-    keyboard.append([InlineKeyboardButton("Custom Size", callback_data="res_custom")])
+        keyboard.append([InlineKeyboardButton("Custom Size", callback_data="res_custom")])
 
-    await wait_msg.edit_text(
-        f"ᴇꜱᴛɪᴍᴀᴛᴇᴅ ᴅᴜʀᴀᴛɪᴏɴ: `{int(duration)}s`\n\nꜱᴇʟᴇᴄᴛ ʀᴇꜱᴏʟᴜᴛɪᴏɴ:",
-        reply_markup=InlineKeyboardMarkup(keyboard)
-    )
+        await wait_msg.edit_text(
+            f"ᴇꜱᴛɪᴍᴀᴛᴇᴅ ᴅᴜʀᴀᴛɪᴏɴ: `{int(duration)}s`\n\nꜱᴇʟᴇᴄᴛ ʀᴇꜱᴏʟᴜᴛɪᴏɴ:",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+
+    except Exception as e:
+        # Log error somewhere if you want (recommended)
+        await message.reply(f"❌ An unexpected error occurred:\n`{e}`")
+
 
 
 

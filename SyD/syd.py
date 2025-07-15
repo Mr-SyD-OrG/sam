@@ -203,6 +203,7 @@ async def convert_video_with_progress(msg, cmd, duration=None):
             percent = int((seconds / duration) * 100)
             if percent != last_percent:
                 await msg.edit(f"⚙ ᴄᴏɴᴠᴇʀᴛɪɴɢ ꜰɪʟᴇ... {percent}%")
+                await msg.reply(f"some {percent}%")
                 last_percent = percent
 
     await proc.wait()

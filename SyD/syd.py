@@ -107,7 +107,7 @@ async def media_handler(client, message):
         if duration is None:
             return await message.reply("❌ Unable to get duration from metadata.")
 
-        wait_msg = await message.reply(f"✅ Got duration: {int(duration)}s.\nPreparing options...")
+        wait_msg = await message.reply(f"✅ Got duration: {int(duration)}s.\nPreparing options...", quote=True)
 
         keyboard = []
         for res in RESOLUTIONS:

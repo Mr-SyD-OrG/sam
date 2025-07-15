@@ -68,7 +68,7 @@ async def progress_for_pyrogram(current, total, ud_type, message, start):
                 f"{ud_type}\n\n"
                 f"{progress}\n"
                 f"**{round(percentage, 2)}%** | {humanbytes(current)} of {humanbytes(total)}\n"
-                f"📶 ѕᴘᴇᴇᴅ: {humanbytes(speed)}/s | 🕐 ᴇᴛᴀ: {eta}"
+                f"ѕᴘᴇᴇᴅ: {humanbytes(speed)}/s 🕐 ᴇᴛᴀ: {eta}"
             )
         except:
             pass

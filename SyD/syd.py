@@ -6,7 +6,7 @@ from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from config import Config
 active_users = set()
 queued_users = {}
-RESOLUTIONS = ["360", "480", "720", "1080"]
+RESOLUTIONS = [360, 480, 720, 1080]
 
 BITRATE_MAP = {
     144:  150,    # 150 kbps for 144p
